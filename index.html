@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  body{margin:0;background:#e9edf1;font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;font-size:12px;color:#1f2933}
+  .wrap{padding:14px 18px;max-width:1500px;margin:0 auto}
+  .head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .demo{background:#1b5e6e;color:#fff;border-radius:3px;padding:2px 9px;font-size:11px;font-weight:600}
+  .title{font-size:18px;font-weight:600;flex:1}
+  .synth{border:1px solid #b5c0cb;border-radius:12px;padding:3px 10px;font-size:10px;color:#58636f;background:#fff}
+  .tabs{display:flex;gap:6px;margin:6px 0 12px;flex-wrap:wrap}
+  .tab{padding:6px 14px;background:#fff;border:1px solid #cfd6de;border-radius:3px;cursor:pointer;font-size:12px}
+  .tab.on{background:#4cc3dc;color:#fff;border-color:#4cc3dc}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .fsel{background:#fff;border:1px solid #cfd6de;border-radius:3px;padding:3px 6px;min-width:150px}
+  .fsel small{display:block;font-size:9px;color:#6b7785;text-transform:uppercase;letter-spacing:.4px}
+  .fsel select{width:100%;border:0;background:transparent;font-size:11px;padding:2px 0;outline:none}
+  .panel{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:start}
+  .side{background:#fff;border:1px solid #d7dde3;border-radius:4px;padding:8px 10px}
+  .side h5{font-size:9px;margin:8px 0 4px;color:#6b7785;text-transform:uppercase;letter-spacing:.5px}
+  .side h5:first-child{margin-top:0}
+  .side label{display:block;font-size:11px;cursor:pointer;line-height:1.6}
+  .box{background:#fff;border:1px solid #d7dde3;border-radius:4px;padding:8px 10px;margin-bottom:10px;min-width:0}
+  .box h4{margin:0 0 6px;text-align:center;font-size:12px;font-weight:600}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .g3{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+  .cols{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+  .scroll{max-height:380px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{background:#f1f4f7;padding:4px 6px;text-align:right;border-bottom:1px solid #d7dde3;position:sticky;top:0;font-weight:600}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:3px 6px;text-align:right;border-bottom:1px solid #f0f2f5;white-space:nowrap}
+  tr.tot td{font-weight:700;border-top:2px solid #cfd6de}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+  .chip{padding:3px 9px;border:1px solid #cfd6de;border-radius:3px;background:#fff;cursor:pointer;font-size:11px;user-select:none}
+  .chip.on{background:#4cc3dc;color:#fff;border-color:#4cc3dc}
+  .dt{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;padding-bottom:4px}
+  .dcol{min-width:190px;flex:1}
+  .dcol .hd{background:#f1f4f7;padding:4px 6px;font-size:10px;text-transform:uppercase;color:#4a5560;border-bottom:2px solid #4cc3dc;display:flex;justify-content:space-between;align-items:center}
+  .dcol .hd b{font-weight:600}
+  .dcol .hd span{cursor:pointer;color:#6b7785}
+  .di{padding:5px 6px;cursor:pointer;border-radius:2px}
+  .di:hover{background:#f4fbfd}
+  .di.on{background:#e3f6fb}
+  .di .nm{display:flex;justify-content:space-between;font-size:11px}
+  .di .nm b{font-weight:600}
+  .di .bar{height:6px;background:#e4e8ec;margin-top:3px;position:relative}
+  .di .bar i{position:absolute;left:0;top:0;bottom:0;background:#1b5e6e}
+  .root{padding:30px 10px;min-width:130px}
+  .root b{font-size:12px}
+  footer{text-align:center;color:#6b7785;font-size:10px;padding:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="demo">DEMO</span>
+    <div class="title">Sales Analysis Dashboard</div>
+    <span class="synth">● SYNTHETIC DEMO DATA</span>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="panel">
+    <div class="side" id="side"></div>
+    <div id="main"></div>
+  </div>
+  <footer>Synthetic sample data 2015–2025 · generated to resemble the Power BI sales report</footer>
+</div>
+
+<script>
+// ---------- synthetic data ----------
+const RND=x=>{const s=Math.sin(x*12.9898+78.233)*43758.5453;return s-Math.floor(s);};
+const YRS=[2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+const YT=[40,95,209,215,232,269,294,329,362,345,331];
+const BUY=[...Array(22)].map((_,i)=>"Retailer "+String.fromCharCode(65+i));
+const MOD=["HS-289","HB-181","HB-825","HK-221","HT-972","HT-571","HK-419","HT-627","HB-738","HS-944","HT-785","HT-727"];
+const CUS=["Factory 049","Factory 053","Factory 061","Factory 012","Factory 009","Factory 102","Factory 095","Factory 096","Factory 031","Factory 044","Factory 017","Factory 028"];
+const REG=["UK","EU","USA","Others"], ORD=["Third Party","Not Specified","Inter Company","Third Party Internal"];
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SF=[.9,.85,1.05,1,1.02,1,.95,.92,1.05,1.1,1.1,1.06];
+const PAIRS=[];
+BUY.forEach((_,bi)=>MOD.forEach((_,mi)=>{const k=bi*12+mi;if(RND(k+1)<.45){const u=RND(k*3+5);
+  PAIRS.push({b:bi,m:mi,r:u<.4?0:u<.6?1:u<.8?2:3,o:Math.floor(RND(k*7+2)*4),c:Math.floor(RND(k*11+3)*12),base:.5+RND(k*13+1)*6,id:k});}}));
+const DATA=[];
+YRS.forEach((y,yi)=>{const rows=[];
+  PAIRS.forEach(p=>SF.forEach((s,mo)=>rows.push({b:p.b,m:p.m,r:p.r,o:p.o,c:p.c,y,mo,q:p.base*s*(.85+.3*RND(p.id*97+yi*13+mo))})));
+  const tot=rows.reduce((a,x)=>a+x.q,0);rows.forEach(x=>x.q=x.q*YT[yi]/tot);DATA.push(...rows);});
+
+// ---------- filter state ----------
+const F={b:-1,c:-1,m:-1,r:-1,o:-1};
+const YS=new Set(YRS), MS=new Set([0,1,2,3,4,5,6,7,8,9,10,11]), QS=new Set([0,1,2,3]);
+let PV={dim:0,mode:0,ord:new Set([0,1,2,3])}, TN=0, DR=[null,null,null,null], TAB="ov", specs=[], live=[], uid=0;
+const CY="#4cc3dc",TL="#1b5e6e",GR={color:"#eef1f4"};
+const PAL=["#1b5e6e","#4cc3dc","#9fd8e6","#e0a526","#d9534f","#8b7fd6","#f4b6c2","#7a8794"];
+const pass=r=>(F.b<0||r.b===F.b)&&(F.c<0||r.c===F.c)&&(F.m<0||r.m===F.m)&&(F.r<0||r.r===F.r)&&(F.o<0||r.o===F.o)&&YS.has(r.y)&&MS.has(r.mo)&&QS.has(Math.floor(r.mo/3));
+const rows=()=>DATA.filter(pass);
+const selYears=()=>YRS.filter(y=>YS.has(y));
+const agg=(rs,kf)=>{const m=new Map();rs.forEach(r=>{const k=kf(r);m.set(k,(m.get(k)||0)+r.q);});return m;};
+const distinct=(rs,y,kf)=>new Set(rs.filter(r=>r.y===y).map(kf)).size;
+const fmtM=v=>v?v.toFixed(1):"–";
+
+// ---------- helpers ----------
+function card(title,type,labels,datasets,o={}){const id="c"+(uid++);specs.push({id,type,labels,datasets,...o});return `<div class="box ${o.cls||""}"><h4>${title}</h4><canvas id="${id}"></canvas></div>`;}
+const AREA=c=>({fill:true,backgroundColor:c+"40",borderColor:c,tension:.35,pointRadius:2});
+const LINE=c=>({fill:false,borderColor:c,backgroundColor:c,tension:.35,pointRadius:2});
+const chipRow=(list,on,act)=>`<div class="chips">${list.map((x,i)=>`<span class="chip ${on(i)?"on":""}" data-act="${act}" data-i="${i}">${x}</span>`).join("")}</div>`;
+
+// ---------- views ----------
+function vOverview(rs){const ys=selYears(),ly=ys[ys.length-1];
+  const byY=agg(rs,r=>r.y),byMo=agg(rs.filter(r=>r.y===ly),r=>r.mo),byR=agg(rs,r=>r.r),byO=agg(rs,r=>r.o);
+  const bu=ys.map(y=>distinct(rs,y,r=>r.b)),cu=ys.map(y=>distinct(rs,y,r=>r.c));
+  const mt=new Map();rs.forEach(r=>{if(!mt.has(r.m))mt.set(r.m,{});const o=mt.get(r.m);o[r.y]=(o[r.y]||0)+r.q;});
+  const mods=[...mt.entries()].sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0));
+  const body=mods.map(([m,o])=>{const t=ys.reduce((a,y)=>a+(o[y]||0),0);return `<tr><td>${MOD[m]}</td>${ys.map(y=>`<td>${fmtM(o[y]||0)}</td>`).join("")}<td><b>${fmtM(t)}</b></td></tr>`;}).join("");
+  const tot=ys.map(y=>mods.reduce((a,[,o])=>a+(o[y]||0),0));
+  return `<div class="cols"><div>
+    <div class="g2">
+      ${card("Hanger Delivered in QTY - Yearly (M pcs)","line",ys.map(String),[{...AREA(CY),label:"M",data:ys.map(y=>+(byY.get(y)||0).toFixed(1))}])}
+      ${card(`Hanger Delivered in ${ly} - Monthly (M pcs)`,"line",MON,[{...AREA(CY),label:"M",data:MON.map((_,m)=>+(byMo.get(m)||0).toFixed(1))}])}
+      ${card("No. of Buyer We Served","line",ys.map(String),[{...AREA("#e0657a"),label:"Buyers",data:bu}])}
+      ${card("No. of Customer We Served","line",ys.map(String),[{...AREA("#4cc38a"),label:"Customers",data:cu}])}
+      ${card("Delivery By Region","doughnut",REG,[{data:REG.map((_,i)=>+(byR.get(i)||0).toFixed(1)),backgroundColor:PAL}],{opts:{cutout:"55%"}})}
+      ${card("Delivery By Order Type","bar",ORD,[{label:"M pcs",data:ORD.map((_,i)=>+(byO.get(i)||0).toFixed(1)),backgroundColor:TL}],{opts:{indexAxis:"y"},plugins:{legend:{display:false}}})}
+    </div></div>
+    <div class="box"><h4>Model delivered by year (M pcs)</h4><div class="scroll"><table><thead><tr><th>Model</th>${ys.map(y=>`<th>${y}</th>`).join("")}<th>Total</th></tr></thead>
+    <tbody>${body}</tbody><tfoot><tr class="tot"><td>Total</td>${tot.map(v=>`<td>${fmtM(v)}</td>`).join("")}<td>${fmtM(tot.reduce((a,b)=>a+b,0))}</td></tr></tfoot></table></div></div></div>`;}
+
+function vModels(rs){const ys=selYears(),ly=ys[ys.length-1];
+  const byMo=agg(rs.filter(r=>r.y===ly),r=>r.mo);
+  const bt=new Map();rs.forEach(r=>{if(!bt.has(r.b))bt.set(r.b,{});const o=bt.get(r.b);o[r.y]=(o[r.y]||0)+r.q;});
+  const list=[...bt.entries()].sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0));
+  const yrTot=ys.map(y=>list.reduce((a,[,o])=>a+(o[y]||0),0));
+  return `<div class="cols"><div>
+    ${card(`Monthly delivery - ${ly} (M pcs)`,"line",MON,[{...AREA(CY),label:"M",data:MON.map((_,m)=>+(byMo.get(m)||0).toFixed(1))}])}
+    ${card("Buyers by year (M pcs) – top 6","bar",ys.map(String),list.slice(0,6).map(([b,o],i)=>({label:BUY[b],data:ys.map(y=>+(o[y]||0).toFixed(1)),backgroundColor:PAL[i]})),{scales:{x:{stacked:true},y:{stacked:true,grid:GR}}})}
+  </div><div class="box"><h4>Buyer delivered by year (M pcs)</h4><div class="scroll"><table><thead><tr><th>Buyer</th>${ys.map(y=>`<th>${y}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+    ${list.map(([b,o])=>{const t=ys.reduce((a,y)=>a+(o[y]||0),0);return `<tr><td>${BUY[b]}</td>${ys.map(y=>`<td>${fmtM(o[y]||0)}</td>`).join("")}<td><b>${fmtM(t)}</b></td></tr>`;}).join("")}
+  </tbody><tfoot><tr class="tot"><td>Total</td>${yrTot.map(v=>`<td>${fmtM(v)}</td>`).join("")}<td>${fmtM(yrTot.reduce((a,b)=>a+b,0))}</td></tr></tfoot></table></div></div></div>`;}
+
+function vPivot(rs){const ys=selYears();
+  const DIMS=[["Buyers",BUY.length,r=>r.b,i=>BUY[i]],["Customers",CUS.length,r=>r.c,i=>CUS[i]],["Models",MOD.length,r=>r.m,i=>MOD[i]]];
+  const d=DIMS[PV.dim];const base=rs.filter(r=>PV.ord.has(r.o));
+  const mt=new Map();base.forEach(r=>{const k=d[2](r);if(!mt.has(k))mt.set(k,{});const o=mt.get(k);o[r.y]=(o[r.y]||0)+r.q;});
+  const grand=ys.map(y=>base.filter(r=>r.y===y).reduce((a,r)=>a+r.q,0));
+  const list=[...mt.entries()].sort((a,b)=>Object.values(b[1]).reduce((x,y)=>x+y,0)-Object.values(a[1]).reduce((x,y)=>x+y,0));
+  const maxV=Math.max(1,...list.flatMap(([,o])=>ys.map(y=>o[y]||0)));
+  const cell=(v,tot)=>{const val=PV.mode?(tot?v/tot*100:0):v;const a=Math.min(.85,v/maxV);return `<td style="background:rgba(27,94,110,${a.toFixed(2)});color:${a>.5?"#fff":"#1f2933"}">${PV.mode?val.toFixed(1)+"%":fmtM(v)}</td>`;};
+  return `<div class="chips">${DIMS.map((x,i)=>`<span class="chip ${PV.dim===i?"on":""}" data-act="pdim" data-i="${i}">${x[0]}</span>`).join("")}<span style="width:14px"></span>
+    ${["Qty","Share %"].map((x,i)=>`<span class="chip ${PV.mode===i?"on":""}" data-act="pmode" data-i="${i}">${x}</span>`).join("")}</div>
+    ${chipRow(ORD,i=>PV.ord.has(i),"pord")}
+    <div class="box"><h4>${d[0]} × Year (${PV.mode?"share of year":"M pcs"})</h4><div class="scroll"><table><thead><tr><th>${d[0].slice(0,-1)}</th>${ys.map(y=>`<th>${y}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+    ${list.map(([k,o])=>{const t=ys.reduce((a,y)=>a+(o[y]||0),0);return `<tr><td>${d[3](k)}</td>${ys.map((y,j)=>cell(o[y]||0,grand[j])).join("")}<td><b>${PV.mode?(t/Math.max(1,grand.reduce((a,b)=>a+b,0))*100).toFixed(1)+"%":fmtM(t)}</b></td></tr>`;}).join("")}
+    </tbody><tfoot><tr class="tot"><td>Total</td>${grand.map(v=>`<td>${fmtM(v)}</td>`).join("")}<td>${fmtM(grand.reduce((a,b)=>a+b,0))}</td></tr></tfoot></table></div></div>`;}
+
+function vTrends(rs){const ys=selYears();
+  const bt=new Map();rs.forEach(r=>bt.set(r.b,(bt.get(r.b)||0)+r.q));
+  const ranked=[...bt.entries()].sort((a,b)=>b[1]-a[1]);
+  const range=[[0,10],[10,20],[0,22]][TN];const pick=ranked.slice(range[0],range[1]);
+  const lbl=["Top 1-10","Top 11-20","All"][TN];
+  const bd=new Map();rs.forEach(r=>{const k=r.b*100+r.y;bd.set(k,(bd.get(k)||0)+r.q);});
+  const cards=pick.map(([b],i)=>card(`${BUY[b]} · ${fmtM(bt.get(b))}M`,"line",ys.map(String),[{...LINE(PAL[i%PAL.length]),label:"M",data:ys.map(y=>+(bd.get(b*100+y)||0).toFixed(2))}],{cls:"mini",ar:1.7,plugins:{legend:{display:false}},scales:{y:{grid:GR}}})).join("");
+  return chipRow(["Top 1-10","Top 11-20","All"],i=>i===TN,"tn")+`<div class="box" style="text-align:center"><b>${lbl} (All) Buyers with All Sales Performance</b><div style="color:#6b7785;font-size:10px">Sorted by largest total volume · M pcs per year</div></div><div class="g3">${cards}</div>`;}
+
+function vDrill(rs){
+  const lv=["Region","Buyer","Model","Customer"];const names=[REG,BUY,MOD,CUS];const keys=[r=>r.r,r=>r.b,r=>r.m,r=>r.c];
+  let cur=rs,total=T(rs),cols="";
+  for(let L=0;L<4;L++){
+    if(L>0&&DR[L-1]===null)break;
+    if(L>0)cur=cur.filter(r=>keys[L-1](r)===DR[L-1]);
+    const m=agg(cur,keys[L]);const items=[...m.entries()].sort((a,b)=>b[1]-a[1]);const mx=Math.max(1,...items.map(x=>x[1]));
+    cols+=`<div class="dcol"><div class="hd"><b>${lv[L]}</b>${DR[L]!==null?`<span data-act="dclr" data-i="${L}">× clear</span>`:""}</div>`+
+      items.slice(0,9).map(([k,v])=>`<div class="di ${DR[L]===k?"on":""}" data-act="dsel" data-l="${L}" data-i="${k}"><div class="nm"><b>${names[L][k]}</b><span>${fmtM(v)}M</span></div><div class="bar"><i style="width:${(v/mx*100).toFixed(1)}%"></i></div></div>`).join("")+
+      (items.length>9?`<div style="padding:4px 6px;color:#6b7785">+${items.length-9} more</div>`:"")+`</div>`;
+  }
+  return `<div class="box"><h4>Decomposition tree · Hanger Qty (click a bar to drill down)</h4><div class="dt"><div class="root"><b>HANGER QTY</b><div style="font-size:16px;color:#1b5e6e;font-weight:700;margin-top:4px">${fmtM(total)}M</div></div>${cols}</div></div>`;}
+const T=a=>a.reduce((x,r)=>x+(r.q||0),0);
+
+// ---------- render & mount ----------
+const TABS=[["ov","Overview",vOverview],["mb","Models & Buyers",vModels],["pv","Pivot Explorer",vPivot],["bt","Buyer Trends",vTrends],["dd","Drill-down",vDrill]];
+function render(){specs=[];uid=0;const rs=rows();
+  document.getElementById("tabs").innerHTML=TABS.map(t=>`<button class="tab ${t[0]===TAB?"on":""}" data-tab="${t[0]}">${t[1]}</button>`).join("");
+  document.getElementById("main").innerHTML=TABS.find(t=>t[0]===TAB)[2](rs);
+  mount();}
+function mount(){live.forEach(c=>c.destroy());live=[];
+  specs.forEach(s=>{const isAx=["bar","line"].includes(s.type)&&!(s.opts&&s.opts.indexAxis);
+    const cfg={type:s.type,data:{labels:s.labels,datasets:s.datasets},options:{responsive:true,maintainAspectRatio:true,aspectRatio:s.ar||2,animation:false,
+      plugins:{legend:{position:"bottom",labels:{boxWidth:10,font:{size:10}}},...(s.plugins||{})},
+      scales:isAx?{y:{grid:GR},...(s.scales||{})}:(s.opts&&s.opts.indexAxis?{x:{grid:GR}}:undefined),...(s.opts||{})}};
+    live.push(new Chart(document.getElementById(s.id),cfg));});}
+
+// ---------- build filters & side once ----------
+const sel=(label,key,list)=>`<div class="fsel"><small>${label}</small><select data-f="${key}"><option value="-1">All</option>${list.map((x,i)=>`<option value="${i}">${x}</option>`).join("")}</select></div>`;
+document.getElementById("filters").innerHTML=sel("Buyer","b",BUY)+sel("Customer","c",CUS)+sel("Model","m",MOD)+sel("Region","r",REG)+sel("Order Type","o",ORD);
+const chk=(list,set,act)=>list.map((x,i)=>`<label><input type="checkbox" data-${act}="${i}" ${set.has(i)?"checked":""}> ${x}</label>`).join("");
+document.getElementById("side").innerHTML=`<h5>Year</h5>${YRS.map(y=>`<label><input type="checkbox" data-yc="${y}" checked> ${y}</label>`).join("")}
+  <h5>Month Short</h5>${MON.map((m,i)=>`<label><input type="checkbox" data-mc="${i}" checked> ${m}</label>`).join("")}
+  <h5>Quarter</h5>${["Q1","Q2","Q3","Q4"].map((q,i)=>`<label><input type="checkbox" data-qc="${i}" checked> ${q}</label>`).join("")}`;
+
+// ---------- events ----------
+document.getElementById("tabs").onclick=e=>{const t=e.target.dataset.tab;if(t){TAB=t;render();}};
+document.getElementById("filters").onchange=e=>{const k=e.target.dataset.f;if(k){F[k]=+e.target.value;render();}};
+document.getElementById("side").onchange=e=>{const d=e.target.dataset;
+  if(d.yc!==undefined){const y=+d.yc;e.target.checked?YS.add(y):YS.delete(y);}
+  if(d.mc!==undefined){const m=+d.mc;e.target.checked?MS.add(m):MS.delete(m);}
+  if(d.qc!==undefined){const q=+d.qc;e.target.checked?QS.add(q):QS.delete(q);}
+  render();};
+document.getElementById("main").onclick=e=>{const d=e.target.closest("[data-act]");if(!d)return;const a=d.dataset.act,i=+d.dataset.i;
+  if(a==="pdim"){PV.dim=i;}
+  if(a==="pmode"){PV.mode=i;}
+  if(a==="pord"){PV.ord.has(i)?PV.ord.delete(i):PV.ord.add(i);if(!PV.ord.size)PV.ord=new Set([0,1,2,3]);}
+  if(a==="tn"){TN=i;}
+  if(a==="dsel"){const L=+d.dataset.l,k=+d.dataset.i;DR[L]=DR[L]===k?null:k;for(let j=L+1;j<4;j++)DR[j]=null;}
+  if(a==="dclr"){for(let j=i;j<4;j++)DR[j]=null;}
+  render();};
+let TAB_INIT="ov";
+render();
+</script>
+</body>
+</html>
